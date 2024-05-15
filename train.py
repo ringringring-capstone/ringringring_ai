@@ -9,7 +9,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.core.lightning import LightningModule
 from torch.utils.data import DataLoader, Dataset
-from transformers.optimization import AdamW, get_cosine_schedule_with_warmup
+from transformers.optimization import get_cosine_schedule_with_warmup
 from transformers import PreTrainedTokenizerFast, GPT2LMHeadModel
 
 parser = argparse.ArgumentParser(description='Simsimi based on KoGPT-2')
@@ -18,11 +18,6 @@ parser.add_argument('--chat',
                     action='store_true',
                     default=False,
                     help='response generation on given user input')
-
-parser.add_argument('--sentiment',
-                    type=str,
-                    default='0',
-                    help='sentiment for system. 0 is neutral, 1 is negative, 2 is positive.')
 
 parser.add_argument('--model_params',
                     type=str,
@@ -71,9 +66,9 @@ class CharDataset(Dataset):
         turn = self._data.iloc[idx]
         q = turn['Q']
         a = turn['A']
-        sentiment = str(turn['label'])
+
         q_toked = self.tokenizer.tokenize(self.q_token + q + \
-                                          self.sent_token + sentiment)   
+                                          self.sent_token)   
         q_len = len(q_toked)
         a_toked = self.tokenizer.tokenize(self.a_token + a + self.eos)
         a_len = len(a_toked)
@@ -164,7 +159,7 @@ class KoGPT2Chat(LightningModule):
             {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
             {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
         ]
-        optimizer = AdamW(optimizer_grouped_parameters,
+        optimizer = Adam(optimizer_grouped_parameters,
                           lr=self.hparams.lr, correct_bias=False)
         # warm up lr
         num_train_steps = len(self.train_dataloader()) * self.hparams.max_epochs
@@ -184,7 +179,7 @@ class KoGPT2Chat(LightningModule):
         return torch.LongTensor(data), torch.LongTensor(mask), torch.LongTensor(label)
 
     def train_dataloader(self):
-        data = pd.read_csv('Chatbot_data/ChatbotData.csv')
+        data = pd.read_csv('data/delivery/final_first.csv')
         self.train_set = CharDataset(data, max_len=self.hparams.max_len)
         train_dataloader = DataLoader(
             self.train_set, batch_size=self.hparams.batch_size, num_workers=2,
