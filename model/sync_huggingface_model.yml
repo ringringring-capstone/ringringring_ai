@@ -24,11 +24,11 @@ jobs:
         HF_API_TOKEN: ${{ secrets.HF_API_TOKEN }}
       run: |
         git clone https://huggingface.co/mogoi/kogpt2_refund
-        cd MODEL_NAME
+        cd kogpt2_refund
         git lfs pull
 
     - name: Push to GitHub
       run: |
-        cd MODEL_NAME
+        cd kogpt2_refund
         git remote add github https://github.com/ringringring-capstone/ringringring_ai.git
         git push github main
